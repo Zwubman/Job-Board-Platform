@@ -29,7 +29,7 @@ export const signUp = async (req, res) => {
 
     const isExist = await User.findOne({ email });
     if (isExist) {
-      res.status(401).json({
+      return res.status(401).json({
         message: "User already registered or sign up, please sign in.",
       });
     }
@@ -117,3 +117,52 @@ export const signIn = async (req, res) => {
     res.status(500).json({ message: "Fail to sign in.", error });
   }
 };
+
+//Retrieve user by id
+export const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({ message: "User:", user });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Fail to retrieve user by id.", error });
+  }
+};
+
+//Update(ser) user profile picture
+export const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user._id; // Assuming you get user ID from auth middleware
+    const filePath = req.file?.path;
+
+    if (!filePath) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Update or set profile picture
+    user.profilePicture = filePath;
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile picture uploaded/updated successfully.",
+      profilePicture: user.profilePicture,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to upload/update profile picture.", error });
+  }
+};
+
