@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import cookie from "cookie-parser";
 import dotenv from "dotenv";
 import User from "../Models/userModel.js";
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -135,34 +137,34 @@ export const getUserById = async (req, res) => {
   }
 };
 
-//Update(ser) user profile picture
-export const updateProfilePicture = async (req, res) => {
-  try {
-    const userId = req.user._id; // Assuming you get user ID from auth middleware
-    const filePath = req.file?.path;
 
-    if (!filePath) {
-      return res.status(400).json({ message: "No file uploaded." });
+// Controller for uploading profile picture
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded.' });
     }
 
-    const user = await User.findById(userId);
+    const userId = req.user.id; // Assuming user is authenticated and their ID is stored in req.user
+    const profilePicPath = `/uploads/${req.file.filename}`;
+
+    // Update user's profile with the new image path
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: profilePicPath },
+      { new: true }
+    );
 
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Update or set profile picture
-    user.profilePicture = filePath;
-    await user.save();
-
     res.status(200).json({
-      message: "Profile picture uploaded/updated successfully.",
-      profilePicture: user.profilePicture,
+      message: 'Profile picture uploaded successfully.',
+      profilePic: profilePicPath
     });
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Failed to upload/update profile picture.", error });
+    res.status(500).json({ message: 'Error uploading profile picture.', error: error.message });
   }
 };
-
