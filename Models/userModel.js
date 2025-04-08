@@ -1,4 +1,4 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from "mongoose";
 
 const usersSchema = new Schema(
   {
@@ -68,5 +68,5 @@ const usersSchema = new Schema(
   },
   { timestamps: true }
 );
-
-export default mongoose.model("User", usersSchema);
+const User = mongoose.model("User", usersSchema);
+export default User;
