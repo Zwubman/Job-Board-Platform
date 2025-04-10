@@ -4,16 +4,16 @@ const applicationSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // The job seeker applying
+      ref: "User", 
       required: true,
     },
     job: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Job", // The job being applied to
+      ref: "Job",
       required: true,
     },
     resume: {
-      type: String, // File path or URL to the uploaded resume
+      type: String, 
       required: true,
     },
     status: {
