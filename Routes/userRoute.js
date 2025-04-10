@@ -14,6 +14,6 @@ const userRoute = express.Router();
 userRoute.post("/sign-up", signUp);
 userRoute.post("/sign-in", signIn);
 userRoute.get("/get-user/:id", getUserById);
-userRoute.post("/profile-picture", verifyToken, upload,  uploadProfilePicture);
+userRoute.post("/profile-picture", verifyToken, upload, uploadProfilePicture);
 
 export default userRoute;
