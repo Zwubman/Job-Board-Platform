@@ -280,3 +280,54 @@ export const editProfileDetails = async (req, res) => {
       .jso({ message: "Failed to update the profile details.", error });
   }
 };
+
+// Add or remove skills from the user skills if the user wants
+export const manageSkills = async (req, res) => {
+  const { skills, action } = req.body; 
+
+  if (!Array.isArray(skills) && typeof skills !== 'string') {
+    return res.status(400).json({ message: 'Skills should be a string or an array of strings' });
+  }
+
+  // If skills is a single string, convert it into an array
+  if (typeof skills === 'string') {
+    skills = [skills];
+  }
+
+  // Check if all skills are strings
+  if (!skills.every(skill => typeof skill === 'string')) {
+    return res.status(400).json({ message: 'Each skill should be a string' });
+  }
+
+  try {
+    let updatedUser;
+
+    if (action === 'add') {
+      // Add unique skills to the user's skills array
+      updatedUser = await User.findByIdAndUpdate(
+        req.user.id,  
+        { $addToSet: { skills: { $each: skills } } },  
+        { new: true }
+      );
+    } else if (action === 'remove') {
+      // Remove the specified skills from the user's skills array
+      updatedUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { $pull: { skills: { $in: skills } } }, 
+        { new: true }
+      );
+    } else {
+      return res.status(400).json({ message: 'Invalid action. Use "add" or "remove".' });
+    }
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: `Skills ${action}ed successfully`, updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: `Error ${action}ing skills`, error });
+  }
+}
+
+
