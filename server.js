@@ -7,6 +7,7 @@ import User from "./Models/userModel.js";
 import Job from "./Models/jobModel.js";
 import Application from "./Models/applicationsModel.js";
 import userRoute from "./Routes/userRoute.js";
+import jobRoute from "./Routes/jobRoute.js"
 dotenv.config();
 const app = express();
 
@@ -15,6 +16,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(express.json());
 app.use("/user", userRoute);
+app.use("/job", jobRoute);
 
 const port = process.env.PORT;
 app.listen(port, () => {
