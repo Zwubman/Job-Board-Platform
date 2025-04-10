@@ -4,8 +4,8 @@ import bcrypt from "bcryptjs";
 import cookie from "cookie-parser";
 import dotenv from "dotenv";
 import User from "../Models/userModel.js";
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -137,12 +137,11 @@ export const getUserById = async (req, res) => {
   }
 };
 
-
 // Controller for uploading profile picture
 export const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded.' });
+      return res.status(400).json({ message: "No file uploaded." });
     }
 
     const userId = req.user.id; // Assuming user is authenticated and their ID is stored in req.user
@@ -156,15 +155,51 @@ export const uploadProfilePicture = async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({ message: "User not found." });
     }
 
     res.status(200).json({
-      message: 'Profile picture uploaded successfully.',
-      profilePic: profilePicPath
+      message: "Profile picture uploaded successfully.",
+      profilePic: profilePicPath,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error uploading profile picture.', error: error.message });
+    res.status(500).json({
+      message: "Error uploading profile picture.",
+      error: error.message,
+    });
+  }
+};
+
+//Change password
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+    const userId = req.user.id;
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect current password." });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      return res.status(303).json({ message: "New password does not match." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password successfully changed." });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Fail to change Password.", error });
   }
 };
