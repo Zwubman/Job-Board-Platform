@@ -239,7 +239,7 @@ export const changePassword = async (req, res) => {
 //Update profile information like bio, skills, experience, and education
 export const editProfileDetails = async (req, res) => {
   try {
-    const { skills, education, experience, bio } = req.body;
+    const { bio } = req.body;
 
     const userId = req.user.id;
 
@@ -252,9 +252,6 @@ export const editProfileDetails = async (req, res) => {
       { _id: userId },
       {
         $set: {
-          skills,
-          education,
-          experience,
           bio,
         },
       },
@@ -446,5 +443,148 @@ export const updateExperience = async (req, res) => {
     res.status(200).json({ message: 'Experience updated successfully', updatedUser });
   } catch (error) {
     res.status(500).json({ message: 'Error updating experience', error });
+  }
+};
+
+
+// Add education 
+export const addEducation = async (req, res) => {
+  const { degree, institution, startYear, endYear } = req.body;
+
+  // Check if all required fields are provided
+  if (!degree || !institution || !startYear || !endYear) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  // Check if the years are valid numbers
+  if (isNaN(startYear) || isNaN(endYear)) {
+    return res.status(400).json({ message: 'Invalid year format' });
+  }
+
+  try {
+    // Construct the education object
+    const newEducation = {
+      degree,
+      institution,
+      startYear,
+      endYear,
+    };
+
+    // Find the user by ID and add the education to the education array
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $push: { education: newEducation } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Education added successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding education', error });
+  }
+};
+
+// Remove education by education unique id
+export const deleteEducation = async (req, res) => {
+  const educationId = req.params.id;
+
+  if (!educationId) {
+    return res.status(400).json({ message: 'Education ID is required' });
+  }
+
+  try {
+    // Remove the education matching the educationId from the user's education array
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $pull: { education: { _id: educationId } } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Education deleted successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting education', error });
+  }
+};
+
+
+// Update specific education found by its id
+export const updateEducation = async (req, res) => {
+  const educationId = req.params.id; 
+  const { degree, institution, startYear, endYear } = req.body;
+
+  // Ensure all required fields are present
+  if (!degree || !institution || !startYear || !endYear) {
+    return res.status(400).json({
+      message: 'All fields (degree, institution, startYear, endYear) are required',
+    });
+  }
+
+  // Check if the years are valid numbers
+  if (isNaN(startYear) || isNaN(endYear)) {
+    return res.status(400).json({ message: 'Invalid year format' });
+  }
+
+  try {
+    // Find the user and update the specific education
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        $set: {
+          'education.$[elem]': {
+            degree,
+            institution,
+            startYear,
+            endYear,
+          },
+        },
+      },
+      {
+        new: true,
+        arrayFilters: [{ 'elem._id': educationId }], // Match the specific education by its ID
+      }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Education updated successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating education', error });
+  }
+};
+
+// View user's profile
+export const viewMyProfile = async (req, res) => {
+  try {
+    // Find the user by ID and include relevant fields (profilePicture, experience, skills, education)
+    const user = await User.findById(req.user.id)
+      .select('profilePicture experience skills education') // Selecting the required fields
+      .exec();
+
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return the user's profile data
+    res.status(200).json({
+      message: 'User profile retrieved successfully',
+      profile: {
+        profilePicture: user.profilePicture,
+        experience: user.experience,
+        skills: user.skills,
+        education: user.education,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving profile', error });
   }
 };

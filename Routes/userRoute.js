@@ -10,7 +10,11 @@ import {
   manageSkills,
   addExperience,
   deleteExperience,
-  updateExperience
+  updateExperience,
+  addEducation,
+  deleteEducation,
+  updateEducation,
+  viewMyProfile,
 } from "../Controllers/userController.js";
 import { verifyToken } from "../Middlewares/authMiddleware.js";
 import upload from "../Middlewares/upload.js";
@@ -27,5 +31,9 @@ userRoute.post("/manage-skills", verifyToken, manageSkills);
 userRoute.post("/add-experience", verifyToken, addExperience);
 userRoute.delete("/delete-experience/:id", verifyToken, deleteExperience);
 userRoute.put("/update-experience/:id", verifyToken, updateExperience);
+userRoute.post("/add-education", verifyToken, addEducation);
+userRoute.delete("/delete-education/:id", verifyToken, deleteEducation);
+userRoute.put("/update-education/:id", verifyToken, updateEducation);
+userRoute.get("/my-profile", verifyToken, viewMyProfile);
 
 export default userRoute;
