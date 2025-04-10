@@ -331,3 +331,120 @@ export const manageSkills = async (req, res) => {
 }
 
 
+// Add experience 
+export const addExperience = async (req, res) => {
+  const { title, company, startDate, endDate, description } = req.body;
+
+  // Check if all required fields are provided
+  if (!title || !company || !startDate || !description) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  // Check if startDate and endDate are valid dates
+  if (isNaN(new Date(startDate)) || (endDate && isNaN(new Date(endDate)))) {
+    return res.status(400).json({ message: 'Invalid date format' });
+  }
+
+  try {
+    // Construct the experience object
+    const newExperience = {
+      title,
+      company,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : null,
+      description,
+    };
+
+    // Find the user by ID and add the experience to the experience array
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $push: { experience: newExperience } }, 
+      { new: true } 
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Experience added successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding experience', error });
+  }
+};
+
+
+// Remove experiance by experienc unique id
+export const deleteExperience = async (req, res) => {
+  const experienceId = req.params.id; 
+
+  if (!experienceId) {
+    return res.status(400).json({ message: 'Experience ID is required' });
+  }
+
+  try {
+    // Remove the experience matching the experienceId from the user's experience array
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id, 
+      { $pull: { experience: { _id: experienceId } } }, 
+      { new: true } 
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Experience deleted successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting experience', error });
+  }
+};
+
+
+//Update specific experience found by its id
+export const updateExperience = async (req, res) => {
+  const experienceId = req.params.id; 
+  const { title, company, startDate, endDate, description } = req.body;
+
+  // Ensure all required fields are present
+  if (!title || !company || !startDate || !endDate || !description) {
+    return res.status(400).json({
+      message: 'All fields (title, company, startDate, endDate, description) are required',
+    });
+  }
+
+  // Validate date formats
+  if (isNaN(new Date(startDate)) || isNaN(new Date(endDate))) {
+    return res.status(400).json({ message: 'Invalid startDate format' });
+  }
+  
+
+  try {
+    // Find the user and update the specific experience
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id, 
+      {
+        $set: {
+          'experience.$[elem]': {
+            title,
+            company,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            description,
+          },
+        },
+      },
+      {
+        new: true, 
+        arrayFilters: [{ 'elem._id': experienceId }], // Match the specific experience by its ID
+      }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Experience updated successfully', updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating experience', error });
+  }
+};
