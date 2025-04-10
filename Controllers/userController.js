@@ -12,8 +12,17 @@ dotenv.config();
 //Sign Up
 export const signUp = async (req, res) => {
   try {
-    const { firstName, middleName, lastName, email, password, role, phone } =
-      req.body;
+    const {
+      firstName,
+      middleName,
+      lastName,
+      email,
+      password,
+      role,
+      phone,
+      companyName,
+      companyDescription,
+    } = req.body;
 
     if (
       !firstName ||
@@ -38,19 +47,42 @@ export const signUp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({
-      firstName,
-      middleName,
-      lastName,
-      email,
-      password: hashedPassword,
-      role,
-      phone,
-    });
+    if (role === "Employer") {
+      if (!companyName || !companyDescription) {
+        return res
+          .status(303)
+          .json({ message: "company name and description is required" });
+      }
+      const user = new User({
+        firstName,
+        middleName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role,
+        phone,
+        companyName,
+        companyDescription,
+      });
 
-    await user.save();
+      await user.save();
 
-    res.status(200).json({ message: "User registered successfully.", user });
+      res.status(200).json({ message: "User registered successfully.", user });
+    } else {
+      const user = new User({
+        firstName,
+        middleName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role,
+        phone,
+      });
+
+      await user.save();
+
+      res.status(200).json({ message: "User registered successfully.", user });
+    }
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Fail to sign up.", error });
@@ -201,5 +233,50 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Fail to change Password.", error });
+  }
+};
+
+//Update profile information like bio, skills, experience, and education
+export const editProfileDetails = async (req, res) => {
+  try {
+    const { skills, education, experience, bio } = req.body;
+
+    const userId = req.user.id;
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const updatedProfileDetails = await User.findByIdAndUpdate(
+      { _id: userId },
+      {
+        $set: {
+          skills,
+          education,
+          experience,
+          bio,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedProfileDetails) {
+      return res.status(404).json({
+        message: "User not found or not updated user's profile details.",
+      });
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "User profile details is successfully updated.",
+        updatedProfileDetails,
+      });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .jso({ message: "Failed to update the profile details.", error });
   }
 };

@@ -5,7 +5,8 @@ import {
   signIn,
   getUserById,
   uploadProfilePicture,
-  changePassword
+  changePassword,
+  editProfileDetails
 } from "../Controllers/userController.js";
 import { verifyToken } from "../Middlewares/authMiddleware.js";
 import upload from "../Middlewares/upload.js";
@@ -17,5 +18,6 @@ userRoute.post("/sign-in", signIn);
 userRoute.get("/get-user/:id", getUserById);
 userRoute.post("/profile-picture", verifyToken, upload, uploadProfilePicture);
 userRoute.put("/change-password", verifyToken, changePassword);
+userRoute.put("/update-details", verifyToken, editProfileDetails);
 
 export default userRoute;
