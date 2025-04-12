@@ -7,6 +7,7 @@ import {
   getAllJob,
   filterJobByCategory,
   applyForJob,
+  viewApplicants,
 } from "../Controllers/jobController.js";
 
 const jobRoute = express.Router();
@@ -15,6 +16,6 @@ jobRoute.post("/create-job", verifyToken, createNewJob);
 jobRoute.get("/all-jobs", verifyToken, getAllJob);
 jobRoute.get("/fillter-jobs", verifyToken, filterJobByCategory);
 jobRoute.post("/apply/:id", verifyToken, upload.single("resume"), applyForJob);
-
+jobRoute.get("/all-applicants/:id", verifyToken, viewApplicants);
 
 export default jobRoute;
