@@ -36,6 +36,32 @@ const jobSchema = new mongoose.Schema(
       type: Date,
       required: false,
     },
+    applicants: [
+      {
+        applicantId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        applicationDate: {
+          type: Date,
+          default: Date.now,
+        },
+        applicationStatus: {
+          type: String,
+          enum: ["Pending", "Reviewed", "Accepted", "Rejected"],
+          default: "Pending",
+        },
+        resume: {
+          type: String, // URL or file path to the uploaded resume
+          required: true,
+        },
+        additionalInfo: {
+          github: String,
+          linkedIn: String,
+        }
+      }
+    ],
+    
     employer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", 

@@ -67,6 +67,10 @@ const usersSchema = mongoose.Schema(
     companyDescription: {
       type: String,
     },
+    application: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job"
+    }
   },
   { timestamps: true }
 );

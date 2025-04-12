@@ -91,3 +91,38 @@ export const getAllJob = async (req, res) => {
     res.status(500).json({ message: "Failed to retrieve jobs.", error });
   }
 };
+
+// Filter jobs by category
+export const filterJobByCategory = async (req, res) => {
+  const { category } = req.query;
+
+  if (!category) {
+    return res
+      .status(400)
+      .json({ message: "Category is required in query parameters." });
+  }
+
+  try {
+    const jobs = await Job.find({
+      category: { $regex: new RegExp(category, "i") },
+    });
+
+    if (jobs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: `No jobs found for category: ${category}` });
+    }
+
+    res.status(200).json({
+      message: `Jobs filtered by category: ${category}`,
+      jobs,
+    });
+  } catch (error) {
+    console.error("Error filtering jobs by category:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to filter jobs by category.", error });
+  }
+};
+
+
