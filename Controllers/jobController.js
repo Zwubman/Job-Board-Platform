@@ -232,10 +232,10 @@ export const responseForApplication = async (req, res) => {
     const jobId = req.params.id;
     const userId = req.user.id; 
 
-    const { applicantId, status } = req.body;
+    const { applicantId, response } = req.body;
 
     // Check if the status is valid
-    if (!["Accepted", "Rejected"].includes(status)) {
+    if (!["Accepted", "Rejected"].includes(response)) {
       return res.status(400).json({ message: "Invalid status. Use 'Accepted' or 'Rejected'." });
     }
 
@@ -249,23 +249,22 @@ export const responseForApplication = async (req, res) => {
       return res.status(404).json({message: "Applicant information is not found."});
     }
 
-    console.log(applicant);
 
-    // // Find the applicant in the job's applicants list
-    // const applicantIndex = job.applicants.findIndex(
-    //   (applicant) => applicant.applicantId.toString() === applicantId
-    // );
+    // Find the applicant in the job's applicants list
+    const applicantIndex = job.applicants.findIndex(
+      (applicant) => applicant.applicantId.toString() === applicantId
+    );
 
-    // if (applicantIndex === -1) {
-    //   return res.status(404).json({ message: "Applicant not found in this job's applicants." });
-    // }
+    if (applicantIndex === -1) {
+      return res.status(404).json({ message: "Applicant not found in this job's applicants." });
+    }
 
-    // // Update the application status to "Accepted" or "Rejected"
-    // job.applicants[applicantIndex].applicationStatus = status;
+    // Update the application status to "Accepted" or "Rejected"
+    job.applicants[applicantIndex].applicationStatus = status;
 
-    // await job.save();
+    await job.save();
 
-    // res.status(200).json({ message: `Application status updated to ${status} for the applicant.` });
+    res.status(200).json({ message: `Application status updated to ${status} for the applicant.` });
 
     // Optionally: You can send an email or notification to the applicant here about the decision.
   } catch (error) {
