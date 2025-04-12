@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Job from "../Models/jobModel.js";
 import User from "../Models/userModel.js";
 
+
 export const createNewJob = async (req, res) => {
   try {
     const {
@@ -126,3 +127,60 @@ export const filterJobByCategory = async (req, res) => {
 };
 
 
+// Aply for the job with the resume
+export const applyForJob = async (req, res) => {
+  try {
+    const jobId = req.params.id;
+    const userId = req.user.id;
+
+    const { github, linkedIn } = req.body;
+    const resume = req.file?.path;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    // Check if the user has already applied
+    const applicant = job.applicants.find(
+      (app) => app.applicantId.toString() === userId
+    );
+
+    if (applicant) {
+      // If the user has already applied and has a resume, do not allow uploading another one
+      if (applicant.resume) {
+        return res.status(400).json({ message: "You have already applied for this job with a resume." });
+      }
+    }
+
+    // If no resume was uploaded or the user is applying for the first time
+    if (!resume) {
+      return res.status(400).json({ message: "Resume file is required." });
+    }
+
+    // Add or update the applicant's resume and other details
+    if (!applicant) {
+      job.applicants.push({
+        applicantId: userId,
+        applicationDate: new Date(),
+        applicationStatus: "Pending",
+        resume,
+        additionalInfo: {
+          github,
+          linkedIn,
+        },
+      });
+    } else {
+      // If user has applied previously, just update the resume and other details
+      applicant.resume = resume;
+      applicant.additionalInfo = { github, linkedIn };
+    }
+
+    await job.save();
+
+    res.status(200).json({ message: "Successfully applied for the job" });
+  } catch (error) {
+    console.error("Application Error:", error);
+    res.status(500).json({ message: "Failed to apply for the job", error });
+  }
+};
