@@ -168,7 +168,7 @@ export const getUserById = async (req, res) => {
   }
 };
 
-// Controller for uploading profile picture
+// Uploading profile picture
 export const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.file) {
@@ -176,18 +176,31 @@ export const uploadProfilePicture = async (req, res) => {
     }
 
     const userId = req.user.id; // Assuming user is authenticated and their ID is stored in req.user
-    const profilePicPath = `/uploads/${req.file.filename}`;
+    const profilePicPath = `/uploads/profilePicture/${req.file.filename}`;
 
-    // Update user's profile with the new image path
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { profilePicture: profilePicPath },
-      { new: true }
-    );
+    // Find the user to check for an existing profile picture
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
+
+    // If the user already has a profile picture, delete the existing file
+    if (user.profilePicture) {
+      const existingPicPath = path.join(
+        __dirname,
+        "..",
+        "..",
+        user.profilePicture
+      );
+      if (fs.existsSync(existingPicPath)) {
+        fs.unlinkSync(existingPicPath);
+      }
+    }
+
+    // Update user's profile with the new image path
+    user.profilePicture = profilePicPath;
+    await user.save();
 
     res.status(200).json({
       message: "Profile picture uploaded successfully.",
@@ -209,20 +222,40 @@ export const changePassword = async (req, res) => {
 
     const userId = req.user.id;
 
+    // Check if all required fields are provided
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      return res
+        .status(401)
+        .json({ message: "All fields are required to change password." });
+    }
+
+    // Find the user by ID
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
+    // Check if the current password matches the stored password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Incorrect current password." });
     }
 
-    if (newPassword !== confirmNewPassword) {
-      return res.status(303).json({ message: "New password does not match." });
+    // Check if the new password is different from the current password
+    if (currentPassword === newPassword) {
+      return res.status(401).json({
+        message: "New password must be different from current password.",
+      });
     }
 
+    // Check if the new password and confirm password match
+    if (newPassword !== confirmNewPassword) {
+      return res
+        .status(401)
+        .json({ message: "New password and confirm password do not match." });
+    }
+
+    // Hash the new password and update the user's password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
 
@@ -242,11 +275,14 @@ export const editProfileDetails = async (req, res) => {
 
     const userId = req.user.id;
 
+    
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
+
+    // Check if the user has a profile details and update it
     const updatedProfileDetails = await User.findByIdAndUpdate(
       { _id: userId },
       {
@@ -257,18 +293,18 @@ export const editProfileDetails = async (req, res) => {
       { new: true }
     );
 
+
+    // Check if the profile details were updated successfully
     if (!updatedProfileDetails) {
       return res.status(404).json({
         message: "User not found or not updated user's profile details.",
       });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "User profile details is successfully updated.",
-        updatedProfileDetails,
-      });
+    res.status(200).json({
+      message: "User profile details is successfully updated.",
+      updatedProfileDetails,
+    });
   } catch (error) {
     console.log(error);
     res
@@ -279,66 +315,73 @@ export const editProfileDetails = async (req, res) => {
 
 // Add or remove skills from the user skills if the user wants
 export const manageSkills = async (req, res) => {
-  const { skills, action } = req.body; 
+  const { skills, action } = req.body;
 
-  if (!Array.isArray(skills) && typeof skills !== 'string') {
-    return res.status(400).json({ message: 'Skills should be a string or an array of strings' });
+
+  
+  if (!Array.isArray(skills) && typeof skills !== "string") {
+    return res
+      .status(400)
+      .json({ message: "Skills should be a string or an array of strings" });
   }
 
   // If skills is a single string, convert it into an array
-  if (typeof skills === 'string') {
+  if (typeof skills === "string") {
     skills = [skills];
   }
 
   // Check if all skills are strings
-  if (!skills.every(skill => typeof skill === 'string')) {
-    return res.status(400).json({ message: 'Each skill should be a string' });
+  if (!skills.every((skill) => typeof skill === "string")) {
+    return res.status(400).json({ message: "Each skill should be a string" });
   }
 
   try {
     let updatedUser;
 
-    if (action === 'add') {
+    if (action === "add") {
       // Add unique skills to the user's skills array
       updatedUser = await User.findByIdAndUpdate(
-        req.user.id,  
-        { $addToSet: { skills: { $each: skills } } },  
+        req.user.id,
+        { $addToSet: { skills: { $each: skills } } },
         { new: true }
       );
-    } else if (action === 'remove') {
+    } else if (action === "remove") {
       // Remove the specified skills from the user's skills array
       updatedUser = await User.findByIdAndUpdate(
         req.user.id,
-        { $pull: { skills: { $in: skills } } }, 
+        { $pull: { skills: { $in: skills } } },
         { new: true }
       );
     } else {
-      return res.status(400).json({ message: 'Invalid action. Use "add" or "remove".' });
+      return res
+        .status(400)
+        .json({ message: 'Invalid action. Use "add" or "remove".' });
     }
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: `Skills ${action}ed successfully`, updatedUser });
+    res
+      .status(200)
+      .json({ message: `Skills ${action}ed successfully`, updatedUser });
   } catch (error) {
     res.status(500).json({ message: `Error ${action}ing skills`, error });
   }
-}
+};
 
-
-// Add experience 
+// Add experience
 export const addExperience = async (req, res) => {
   const { title, company, startDate, endDate, description } = req.body;
 
   // Check if all required fields are provided
   if (!title || !company || !startDate || !description) {
-    return res.status(400).json({ message: 'Missing required fields' });
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   // Check if startDate and endDate are valid dates
   if (isNaN(new Date(startDate)) || (endDate && isNaN(new Date(endDate)))) {
-    return res.status(400).json({ message: 'Invalid date format' });
+    return res.status(400).json({ message: "Invalid date format" });
   }
 
   try {
@@ -354,73 +397,75 @@ export const addExperience = async (req, res) => {
     // Find the user by ID and add the experience to the experience array
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { $push: { experience: newExperience } }, 
-      { new: true } 
+      { $push: { experience: newExperience } },
+      { new: true }
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Experience added successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Experience added successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding experience', error });
+    res.status(500).json({ message: "Error adding experience", error });
   }
 };
 
-
 // Remove experiance by experienc unique id
 export const deleteExperience = async (req, res) => {
-  const experienceId = req.params.id; 
+  const experienceId = req.params.id;
 
   if (!experienceId) {
-    return res.status(400).json({ message: 'Experience ID is required' });
+    return res.status(400).json({ message: "Experience ID is required" });
   }
 
   try {
     // Remove the experience matching the experienceId from the user's experience array
     const updatedUser = await User.findByIdAndUpdate(
-      req.user.id, 
-      { $pull: { experience: { _id: experienceId } } }, 
-      { new: true } 
+      req.user.id,
+      { $pull: { experience: { _id: experienceId } } },
+      { new: true }
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Experience deleted successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Experience deleted successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting experience', error });
+    res.status(500).json({ message: "Error deleting experience", error });
   }
 };
 
-
 //Update specific experience found by its id
 export const updateExperience = async (req, res) => {
-  const experienceId = req.params.id; 
+  const experienceId = req.params.id;
   const { title, company, startDate, endDate, description } = req.body;
 
   // Ensure all required fields are present
   if (!title || !company || !startDate || !endDate || !description) {
     return res.status(400).json({
-      message: 'All fields (title, company, startDate, endDate, description) are required',
+      message:
+        "All fields (title, company, startDate, endDate, description) are required",
     });
   }
 
   // Validate date formats
   if (isNaN(new Date(startDate)) || isNaN(new Date(endDate))) {
-    return res.status(400).json({ message: 'Invalid startDate format' });
+    return res.status(400).json({ message: "Invalid startDate format" });
   }
-  
 
   try {
     // Find the user and update the specific experience
     const updatedUser = await User.findByIdAndUpdate(
-      req.user.id, 
+      req.user.id,
       {
         $set: {
-          'experience.$[elem]': {
+          "experience.$[elem]": {
             title,
             company,
             startDate: new Date(startDate),
@@ -430,34 +475,35 @@ export const updateExperience = async (req, res) => {
         },
       },
       {
-        new: true, 
-        arrayFilters: [{ 'elem._id': experienceId }], // Match the specific experience by its ID
+        new: true,
+        arrayFilters: [{ "elem._id": experienceId }], // Match the specific experience by its ID
       }
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Experience updated successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Experience updated successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating experience', error });
+    res.status(500).json({ message: "Error updating experience", error });
   }
 };
 
-
-// Add education 
+// Add education
 export const addEducation = async (req, res) => {
   const { degree, institution, startYear, endYear } = req.body;
 
   // Check if all required fields are provided
   if (!degree || !institution || !startYear || !endYear) {
-    return res.status(400).json({ message: 'Missing required fields' });
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   // Check if the years are valid numbers
   if (isNaN(startYear) || isNaN(endYear)) {
-    return res.status(400).json({ message: 'Invalid year format' });
+    return res.status(400).json({ message: "Invalid year format" });
   }
 
   try {
@@ -477,12 +523,14 @@ export const addEducation = async (req, res) => {
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Education added successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Education added successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding education', error });
+    res.status(500).json({ message: "Error adding education", error });
   }
 };
 
@@ -491,7 +539,7 @@ export const deleteEducation = async (req, res) => {
   const educationId = req.params.id;
 
   if (!educationId) {
-    return res.status(400).json({ message: 'Education ID is required' });
+    return res.status(400).json({ message: "Education ID is required" });
   }
 
   try {
@@ -503,31 +551,33 @@ export const deleteEducation = async (req, res) => {
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Education deleted successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Education deleted successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting education', error });
+    res.status(500).json({ message: "Error deleting education", error });
   }
 };
 
-
 // Update specific education found by its id
 export const updateEducation = async (req, res) => {
-  const educationId = req.params.id; 
+  const educationId = req.params.id;
   const { degree, institution, startYear, endYear } = req.body;
 
   // Ensure all required fields are present
   if (!degree || !institution || !startYear || !endYear) {
     return res.status(400).json({
-      message: 'All fields (degree, institution, startYear, endYear) are required',
+      message:
+        "All fields (degree, institution, startYear, endYear) are required",
     });
   }
 
   // Check if the years are valid numbers
   if (isNaN(startYear) || isNaN(endYear)) {
-    return res.status(400).json({ message: 'Invalid year format' });
+    return res.status(400).json({ message: "Invalid year format" });
   }
 
   try {
@@ -536,7 +586,7 @@ export const updateEducation = async (req, res) => {
       req.user.id,
       {
         $set: {
-          'education.$[elem]': {
+          "education.$[elem]": {
             degree,
             institution,
             startYear,
@@ -546,17 +596,19 @@ export const updateEducation = async (req, res) => {
       },
       {
         new: true,
-        arrayFilters: [{ 'elem._id': educationId }], // Match the specific education by its ID
+        arrayFilters: [{ "elem._id": educationId }], // Match the specific education by its ID
       }
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: 'Education updated successfully', updatedUser });
+    res
+      .status(200)
+      .json({ message: "Education updated successfully", updatedUser });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating education', error });
+    res.status(500).json({ message: "Error updating education", error });
   }
 };
 
@@ -565,17 +617,17 @@ export const viewMyProfile = async (req, res) => {
   try {
     // Find the user by ID and include relevant fields (profilePicture, experience, skills, education)
     const user = await User.findById(req.user.id)
-      .select('profilePicture experience skills education') // Selecting the required fields
+      .select("profilePicture experience skills education") 
       .exec();
 
     // Check if the user exists
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Return the user's profile data
     res.status(200).json({
-      message: 'User profile retrieved successfully',
+      message: "User profile retrieved successfully",
       profile: {
         profilePicture: user.profilePicture,
         experience: user.experience,
@@ -584,6 +636,6 @@ export const viewMyProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving profile', error });
+    res.status(500).json({ message: "Error retrieving profile", error });
   }
 };
