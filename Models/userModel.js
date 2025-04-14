@@ -67,10 +67,18 @@ const usersSchema = mongoose.Schema(
     companyDescription: {
       type: String,
     },
-    application: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Job"
-    }
+    myApplications: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Job",
+      },
+    ],
+    myJobs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Job",
+      },
+    ],
   },
   { timestamps: true }
 );

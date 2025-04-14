@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import Job from "../Models/jobModel.js";
 import User from "../Models/userModel.js";
+import { sendMailNotification } from "../Helpers/sendMail.js";
 
+// Create a new job
 export const createNewJob = async (req, res) => {
   try {
     const {
@@ -15,6 +17,7 @@ export const createNewJob = async (req, res) => {
       applicationDeadline,
     } = req.body;
 
+    // Validate required fields
     if (
       !title ||
       !description ||
@@ -25,7 +28,7 @@ export const createNewJob = async (req, res) => {
       !category ||
       !applicationDeadline
     ) {
-      res.status(301).json({ message: "all fields is required." });
+      return res.status(400).json({ message: "All fields are required." });
     }
 
     const userId = req.user.id;
@@ -34,18 +37,20 @@ export const createNewJob = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
-
+    
+    // Check the jog is exist or not
     const isExist = await Job.findOne({
-      title: title,
+      title,
       description,
       location,
       skills,
     });
 
     if (isExist) {
-      return res.status(401).json({ message: "Job already created.", job });
+      return res.status(409).json({ message: "Job already exists." });
     }
 
+    // Create a new job
     const job = new Job({
       title,
       description,
@@ -60,10 +65,38 @@ export const createNewJob = async (req, res) => {
 
     await job.save();
 
-    res.status(200).json({ message: "Job creatd successfully.", job });
+    // Add the job to the employer's list of jobs
+    user.myJobs.push(job._id);
+    await user.save();
+
+    return res.status(201).json({ message: "Job created successfully.", job });
+  } catch (error) {
+    console.error("Error creating job:", error);
+    return res.status(500).json({ message: "Failed to create new job.", error });
+  }
+};
+
+// Retrieve my job
+export const getMyJobs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    // Check if the user is an employer
+    const myJobs = await Job.find({ employer: userId });
+    if (!myJobs || myJobs.length === 0) {
+      return res.status(404).json({ message: "There are no jobs." });
+    }
+    res.status(200).json({
+      message: "My jobs retrieved successfully",
+      myJobs: myJobs,
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Fail to create new job.", error });
+    res.status(500).json({ message: "Fail to retrieve my jobs.", error });
   }
 };
 
@@ -139,6 +172,12 @@ export const applyForJob = async (req, res) => {
       return res.status(404).json({ message: "Job not found" });
     }
 
+    // Check if the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     // Check if the user has already applied
     const applicant = job.applicants.find(
       (app) => app.applicantId.toString() === userId
@@ -177,6 +216,9 @@ export const applyForJob = async (req, res) => {
     }
 
     await job.save();
+
+    user.myApplications.push(jobId);
+    await user.save();
 
     res.status(200).json({ message: "Successfully applied for the job" });
   } catch (error) {
@@ -230,13 +272,15 @@ export const viewApplicants = async (req, res) => {
 export const responseForApplication = async (req, res) => {
   try {
     const jobId = req.params.id;
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
     const { applicantId, response } = req.body;
 
     // Check if the status is valid
     if (!["Accepted", "Rejected"].includes(response)) {
-      return res.status(400).json({ message: "Invalid status. Use 'Accepted' or 'Rejected'." });
+      return res
+        .status(400)
+        .json({ message: "Invalid status. Use 'Accepted' or 'Rejected'." });
     }
 
     const job = await Job.findOne({ _id: jobId, employer: userId });
@@ -244,11 +288,17 @@ export const responseForApplication = async (req, res) => {
       return res.status(404).json({ message: "Job not found." });
     }
 
-    const applicant = await User.findById(applicantId);
-    if(!applicant){
-      return res.status(404).json({message: "Applicant information is not found."});
+    const employer = await User.findById(userId);
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found." });
     }
 
+    const applicant = await User.findById(applicantId);
+    if (!applicant) {
+      return res
+        .status(404)
+        .json({ message: "Applicant information is not found." });
+    }
 
     // Find the applicant in the job's applicants list
     const applicantIndex = job.applicants.findIndex(
@@ -256,20 +306,35 @@ export const responseForApplication = async (req, res) => {
     );
 
     if (applicantIndex === -1) {
-      return res.status(404).json({ message: "Applicant not found in this job's applicants." });
+      return res
+        .status(404)
+        .json({ message: "Applicant not found in this job's applicants." });
     }
 
     // Update the application status to "Accepted" or "Rejected"
-    job.applicants[applicantIndex].applicationStatus = status;
+    job.applicants[applicantIndex].applicationStatus = response;
 
     await job.save();
 
-    res.status(200).json({ message: `Application status updated to ${status} for the applicant.` });
+    // Send email notification
+    const type = response;
+    await sendMailNotification(
+      applicant.email,
+      applicant.firstName,
+      applicant.middleName,
+      applicant.lastName,
+      job.title,
+      employer.companyName,
+      type
+    );
 
-    // Optionally: You can send an email or notification to the applicant here about the decision.
+    return res.status(200).json({
+      message: `Application status updated to ${response} for the applicant.`,
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Response is not sending for the user.", error });
+    return res
+      .status(500)
+      .json({ message: "Response is not sending for the user.", error });
   }
 };
-
