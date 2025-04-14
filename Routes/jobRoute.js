@@ -9,6 +9,11 @@ import {
   viewApplicants,
   responseForApplication,
   getMyJobs,
+  getAllMyApplication,
+  cancelApplication,
+  updateJob,
+  deleteJob,
+  trackApplicationStatus
 } from "../Controllers/jobController.js";
 import {
   verifyToken,
@@ -16,14 +21,19 @@ import {
   checkUserRole,
 } from "../Middlewares/authMiddleware.js";
 
-const jobRoute = express.Router();
+const jobRouter = express.Router();
 
-jobRoute.post("/create-job", verifyToken, checkEmployerRole, createNewJob);
-jobRoute.get("/all-jobs", verifyToken, getAllJob);
-jobRoute.get("/fillter-jobs", verifyToken, filterJobByCategory);
-jobRoute.post("/apply/:id", verifyToken, checkUserRole, upload.single("resume"), applyForJob);
-jobRoute.get("/all-applicants/:id", verifyToken, checkEmployerRole, viewApplicants);
-jobRoute.post("/respond/:id", verifyToken, checkEmployerRole, responseForApplication);
-jobRoute.get("/my-jobs", verifyToken, checkEmployerRole, getMyJobs);
+jobRouter.post("/create-job", verifyToken, checkEmployerRole, createNewJob);
+jobRouter.get("/all-jobs", verifyToken, getAllJob);
+jobRouter.get("/fillter-jobs", verifyToken, filterJobByCategory);
+jobRouter.post("/apply/:id", verifyToken, checkUserRole, upload.single("resume"), applyForJob);
+jobRouter.get("/all-applicants/:id", verifyToken, checkEmployerRole, viewApplicants);
+jobRouter.post("/respond/:id", verifyToken, checkEmployerRole, responseForApplication);
+jobRouter.get("/my-jobs", verifyToken, checkEmployerRole, getMyJobs);
+jobRouter.get("/my-applications", verifyToken, checkUserRole, getAllMyApplication);
+jobRouter.delete("/cancel-application/:id", verifyToken, checkUserRole, cancelApplication);
+jobRouter.put("/update-job/:id", verifyToken, checkEmployerRole, updateJob);
+jobRouter.delete("/delet-job/:id", verifyToken, checkEmployerRole, deleteJob);
+jobRouter.get("/track-application/:id", verifyToken, checkUserRole, trackApplicationStatus);
 
-export default jobRoute;
+export default jobRouter;

@@ -5,7 +5,6 @@ import path from "path";
 import "./DbConfigs/dbConfig.js";
 import User from "./Models/userModel.js";
 import Job from "./Models/jobModel.js";
-import Application from "./Models/applicationsModel.js";
 import userRoute from "./Routes/userRoute.js";
 import jobRoute from "./Routes/jobRoute.js"
 dotenv.config();
