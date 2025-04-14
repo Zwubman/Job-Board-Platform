@@ -14,6 +14,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = "./uploads";
 
+    // Set the upload path based on the field name
     if (file.fieldname === "profilePic") {
       uploadPath = "./uploads/profilePicture";
     } else if (file.fieldname === "resume") {
@@ -24,6 +25,7 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
 
+  // Set the filename
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(
@@ -42,6 +44,7 @@ const fileFilter = (req, file, cb) => {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ];
 
+  // Check the file type based on the field name
   if (
     (file.fieldname === "profilePic" && imageTypes.includes(file.mimetype)) ||
     (file.fieldname === "resume" && docTypes.includes(file.mimetype))
@@ -52,6 +55,8 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+
+// Set up multer with the storage engine and file filter
 const upload = multer({
   storage,
   fileFilter,

@@ -6,7 +6,7 @@ import "./DbConfigs/dbConfig.js";
 import User from "./Models/userModel.js";
 import Job from "./Models/jobModel.js";
 import userRoute from "./Routes/userRoute.js";
-import jobRoute from "./Routes/jobRoute.js"
+import jobRoute from "./Routes/jobRoute.js";
 dotenv.config();
 const app = express();
 

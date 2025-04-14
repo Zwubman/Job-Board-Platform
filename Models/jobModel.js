@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+// Define the job schema
 const jobSchema = new mongoose.Schema(
   {
     title: {
@@ -16,7 +17,7 @@ const jobSchema = new mongoose.Schema(
       required: true,
     },
     skills: {
-      type: [String], 
+      type: [String],
       required: true,
     },
     salary: {
@@ -58,15 +59,15 @@ const jobSchema = new mongoose.Schema(
         additionalInfo: {
           github: String,
           linkedIn: String,
-        }
-      }
+        },
+      },
     ],
-    
+
     employer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", 
+      ref: "User",
       required: true,
-    }
+    },
   },
   { timestamps: true }
 );

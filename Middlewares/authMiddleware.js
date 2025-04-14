@@ -4,7 +4,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Middleware to verify the token
 export const verifyToken = async (req, res, next) => {
+  
+  // Check if the request has a token
   const authHeader = req.headers["authorization"];
   if (!authHeader) {
     return res
@@ -12,14 +15,17 @@ export const verifyToken = async (req, res, next) => {
       .json({ message: "Authorization header is required." });
   }
 
+  // Check if the token is in the correct format
   const token = authHeader.split(" ")[1];
-
   if (!token) {
     return res.status(404).json({ message: "token is not found in headers." });
   }
   try {
+
+    // Verify the token
     jwt.verify(token, process.env.ACCESS_TOKEN_KEY, (err, decoded) => {
       if (err) {
+        // Check if the error is due to token expiration
         if (err.name === TokenExpiredError) {
           res
             .status(401)
@@ -27,6 +33,8 @@ export const verifyToken = async (req, res, next) => {
         }
         res.status(403).json({ message: "Invalid token or has expired" });
       }
+      
+      // Attach the decoded user information to the request object
       req.user = decoded;
       next();
     });
