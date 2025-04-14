@@ -40,9 +40,9 @@ export const verifyToken = async (req, res, next) => {
 export const checkUserRole = async (req, res, next) => {
   try {
     if (req.user.role === "User") {
-      next();
+      return next();
     }
-    res.status(301).json({ message: "Access denied." });
+    return res.status(301).json({ message: "Access denied." });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Invalid Credential." });
@@ -53,9 +53,9 @@ export const checkUserRole = async (req, res, next) => {
 export const checkEmployerRole = async (req, res, next) => {
   try {
     if (req.user.role === "Employer") {
-      next();
+      return next(); 
     }
-    res.status(301).json({ message: "Access denied." });
+    return res.status(403).json({ message: "Access denied." }); 
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Invalid Credential." });

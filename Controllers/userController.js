@@ -30,7 +30,6 @@ export const signUp = async (req, res) => {
       !lastName ||
       !email ||
       !password ||
-      !role ||
       !phone
     ) {
       return res
