@@ -237,6 +237,7 @@ export const viewApplicants = async (req, res) => {
     if (!job) {
       return res.status(404).json({ message: "Job not found." });
     }
+    
 
     // Get the details of each applicant for the job
     const applicants = await Promise.all(
@@ -283,16 +284,19 @@ export const responseForApplication = async (req, res) => {
         .json({ message: "Invalid status. Use 'Accepted' or 'Rejected'." });
     }
 
+    // Check if the job exists and belongs to the employer
     const job = await Job.findOne({ _id: jobId, employer: userId });
     if (!job) {
       return res.status(404).json({ message: "Job not found." });
     }
 
+    // Check if the employer exists
     const employer = await User.findById(userId);
     if (!employer) {
       return res.status(404).json({ message: "Employer not found." });
     }
 
+    // Check if the applicant exists
     const applicant = await User.findById(applicantId);
     if (!applicant) {
       return res
@@ -305,6 +309,7 @@ export const responseForApplication = async (req, res) => {
       (applicant) => applicant.applicantId.toString() === applicantId
     );
 
+    // If the applicant is not found in the job's applicants list
     if (applicantIndex === -1) {
       return res
         .status(404)
